@@ -1,68 +1,68 @@
-# ?? T�I LI?U H? TH?NG LOGGING
+﻿# 📘 TÀI LIỆU HỆ THỐNG LOGGING
 
-## 1. M?c ti�u
+## 1. Mục tiêu
 
-H? th?ng logging ???c x�y d?ng nh?m:
+Hệ thống logging được xây dựng nhằm:
 
-* Thu th?p **logs / traces / metrics** t?p trung t? c�c d?ch v? .NET Core API
-* Chu?n ho� theo **OpenTelemetry (OTLP)**
-* L?u tr?, t�m ki?m, ph�n t�ch log b?ng **Elasticsearch**
-* Tr?c quan ho�, gi�m s�t qua **Kibana**
+* Thu thập **logs / traces / metrics** tập trung từ các dịch vụ .NET Core API
+* Chuẩn hoá theo **OpenTelemetry (OTLP)**
+* Lưu trữ, tìm kiếm, phân tích log bằng **Elasticsearch**
+* Trực quan hoá, giám sát qua **Kibana**
 
 ---
 
-## 2. Ki?n tr�c t?ng th?
+## 2. Kiến trúc tổng thể
 
 ```
 .NET Core API 
-   ?
+   │
 
-   Serilog (thread log ri�ng)
+   Serilog (thread log riêng)
 
-   ? OpenTelemetry SDK (OTLP)
-   ?
+   │ OpenTelemetry SDK (OTLP)
+   ▼
 OpenTelemetry Collector
-   ?
-   ? OTLP / HTTP
-   ?
+   │
+   │ OTLP / HTTP
+   ▼
 Elasticsearch
-   ?
-   ?
+   │
+   ▼
 Kibana
 ```
 
-### Th�nh ph?n
+### Thành phần
 
-| Th�nh ph?n        | Vai tr�                         |
+| Thành phần        | Vai trò                         |
 | ----------------- | ------------------------------- |
-| .NET Core API     | Ph�t sinh log / trace / metric  |
-| OTEL Collector    | Thu gom, x? l�, forward d? li?u |
-| Elasticsearch     | L?u tr? & t�m ki?m              |
-| Kibana            | Dashboard, truy v?n, c?nh b�o   |
+| .NET Core API     | Phát sinh log / trace / metric  |
+| OTEL Collector    | Thu gom, xử lý, forward dữ liệu |
+| Elasticsearch     | Lưu trữ & tìm kiếm              |
+| Kibana            | Dashboard, truy vấn, cảnh báo   |
 
 ---
 
 
 ### 3.2 Level log
 
-| Level       | � ngh?a            |
+| Level       | Ý nghĩa            |
 | ----------- | ------------------ |
-| Trace       | Debug chi ti?t     |
-| Debug       | Ph?c v? dev        |
-| Information | H�nh vi h? th?ng   |
-| Warning     | B?t th??ng nh?     |
-| Error       | L?i nghi?p v?      |
-| Critical    | S? c? nghi�m tr?ng |
+| Trace       | Debug chi tiết     |
+| Debug       | Phục vụ dev        |
+| Information | Hành vi hệ thống   |
+| Warning     | Bất thường nhẹ     |
+| Error       | Lỗi nghiệp vụ      |
+| Critical    | Sự cố nghiêm trọng |
 
 ## 5. OpenTelemetry Collector
 
-### 5.1 Vai tr�
+### 5.1 Vai trò
 
-* Nh?n OTLP t? services
+* Nhận OTLP từ services
 * Batching, filtering
 * Forward sang Elasticsearch
 
-### 5.2 C?u h�nh `otel-collector.yaml`
+### 5.2 Cấu hình `otel-collector.yaml`
 
 
 ## 6. Elasticsearch
@@ -70,28 +70,28 @@ Kibana
 ### 6.1 Index strategy
 
 * logs-system-YYYY.MM.DD
-* S? d?ng **ILM (Index Lifecycle Management)**
+* Sử dụng **ILM (Index Lifecycle Management)**
 
-### 6.2 ILM ?? xu?t
+### 6.2 ILM đề xuất
 
-| Phase  | Th?i gian | H�nh ??ng    |
+| Phase  | Thời gian | Hành động    |
 | ------ | --------- | ------------ |
-| Hot    | 0�7 ng�y  | Ghi log      |
-| Warm   | 7�30 ng�y | Gi?m replica |
-| Delete | >30 ng�y  | Xo�          |
+| Hot    | 0–7 ngày  | Ghi log      |
+| Warm   | 7–30 ngày | Giảm replica |
+| Delete | >30 ngày  | Xoá          |
 
 ---
 
 ## 7. Kibana
 
-### 7.1 Ch?c n?ng ch�nh
+### 7.1 Chức năng chính
 
 * Discover logs
 * Dashboard theo service
 * Trace view (distributed tracing)
 * Alerting
 
-### 7.2 Dashboard g?i �
+### 7.2 Dashboard gợi ý
 
 * Error rate theo service
 * Request latency (p95)
@@ -100,79 +100,79 @@ Kibana
 
 ---
 
-## 8. Truy v?t (Trace)
+## 8. Truy vết (Trace)
 
-* M?i request sinh ra `trace_id`
-* Log � Trace � Metric ???c li�n k?t
-* D? debug l?i ph�n t�n (microservices)
-
----
-
-## 11. Cron Job & C? ch? x�a log ??nh k?
-
-### 11.1 M?c ti�u
-
-* Tr�nh **tr�n dung l??ng ? ??a** do log t?ng li�n t?c
-* Gi?m chi ph� l?u tr? Elasticsearch
-* Tu�n th? ch�nh s�ch l?u tr? d? li?u (data retention policy)
+* Mỗi request sinh ra `trace_id`
+* Log – Trace – Metric được liên kết
+* Dễ debug lỗi phân tán (microservices)
 
 ---
 
-### 11.2 Chi?n l??c x�a log
+## 11. Cron Job & Cơ chế xóa log định kỳ
 
-H? th?ng �p d?ng **k?t h?p 2 c? ch?**:
+### 11.1 Mục tiêu
 
-1. **ILM (Index Lifecycle Management)** � c? ch? chu?n c?a Elasticsearch
-2. **Cron Job ch? ??ng** � d�ng cho c�c tr??ng h?p ??c bi?t
+* Tránh **tràn dung lượng ổ đĩa** do log tăng liên tục
+* Giảm chi phí lưu trữ Elasticsearch
+* Tuân thủ chính sách lưu trữ dữ liệu (data retention policy)
 
 ---
 
-### 11.3 ILM � C? ch? ch�nh (Khuy?n ngh?)
-Elasticsearch t? ??ng xo� index theo v�ng ??i:
+### 11.2 Chiến lược xóa log
 
-| Phase  | Th?i gian   | H�nh ??ng               |
+Hệ thống áp dụng **kết hợp 2 cơ chế**:
+
+1. **ILM (Index Lifecycle Management)** – cơ chế chuẩn của Elasticsearch
+2. **Cron Job chủ động** – dùng cho các trường hợp đặc biệt
+
+---
+
+### 11.3 ILM – Cơ chế chính (Khuyến nghị)
+Elasticsearch tự động xoá index theo vòng đời:
+
+| Phase  | Thời gian   | Hành động               |
 | ------ | ----------- | ----------------------- |
-| Hot    | 0 � 7 ng�y  | Ghi log                 |
-| Warm   | 7 � 30 ng�y | Gi?m replica / readonly |
-| Delete | > 30 ng�y   | Xo� index               |
+| Hot    | 0 – 7 ngày  | Ghi log                 |
+| Warm   | 7 – 30 ngày | Giảm replica / readonly |
+| Delete | > 30 ngày   | Xoá index               |
 
-?? ?u ?i?m:
+📌 Ưu điểm:
 
-* Kh�ng c?n cron
-* An to�n, native
-* Hi?u n?ng t?t
+* Không cần cron
+* An toàn, native
+* Hiệu năng tốt
 
-?? �p d?ng cho:
+📌 Áp dụng cho:
 
 * logs-system-YYYY.MM.DD
 * audit-log-YYYY.MM.DD
 
 ---
 
-### 11.4 Cron Job � C? ch? b? tr?
+### 11.4 Cron Job – Cơ chế bổ trợ
 
-Cron Job ???c d�ng khi:
+Cron Job được dùng khi:
 
-* C?n xo� log theo **?i?u ki?n nghi?p v?**
-* Xo� log debug / test
-* D?n log t?m, log ngo�i ILM
+* Cần xoá log theo **điều kiện nghiệp vụ**
+* Xoá log debug / test
+* Dọn log tạm, log ngoài ILM
 
 
-### 11.6 Gi�m s�t & an to�n
+### 11.6 Giám sát & an toàn
 
-? Log l?i k?t qu? cron job
+✅ Log lại kết quả cron job
 
-? Alert khi dung l??ng disk > 80%
+✅ Alert khi dung lượng disk > 80%
 
-? Kh�ng ch?y cron xo� log gi? cao ?i?m
+✅ Không chạy cron xoá log giờ cao điểm
 
 ---
 
-## 12. M? r?ng trong t??ng lai
+## 12. Mở rộng trong tương lai
 
-* Th�m Metrics (CPU, RAM)
+* Thêm Metrics (CPU, RAM)
 * Alert qua Slack / Email
-* APM n�ng cao
-* Correlation log � business event
+* APM nâng cao
+* Correlation log – business event
 
 ---
