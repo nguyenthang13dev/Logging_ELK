@@ -1,0 +1,68 @@
+﻿
+services:
+  # 1. Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=es-docker-cluster
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=staxicommon123!@#
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - otel-network
+    restart: unless-stopped
+   
+
+  # 2. Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      -  ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system  
+      - ELASTICSEARCH_PASSWORD=staxicommon123!@#
+      - XPACK_SECURITY_ENABLED=true
+    depends_on:
+      - elasticsearch
+    networks:
+      - otel-network
+    restart: unless-stopped
+
+  # 3. OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"   # OTLP gRPC  
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Prometheus metrics
+      - "13133:13133" # Health check
+    environment:
+      - LOG_LEVEL=INFO
+      - GOGC=50
+      - GOMAXPROCS=2
+    depends_on:
+      - elasticsearch
+    networks:
+      - otel-network
+    restart: unless-stopped
+volumes:
+  elasticsearch_data:
+    driver: local
+
+networks:
+  otel-network:
+    driver: bridge

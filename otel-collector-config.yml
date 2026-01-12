@@ -1,0 +1,72 @@
+﻿receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:*"
+            - "http://127.0.0.1:*"
+          max_age: 7200
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+
+  attributes:
+    actions:
+      - key: collector.name
+        value: "otel-collector-demo"
+        action: insert
+      - key: collector.version
+        value: "1.0.0"
+        action: insert
+
+exporters:
+  elasticsearch/logs:
+    endpoints: ["http://elasticsearch:9200"]
+    logs_index: "app-logs"
+    # ĐÃ XOÁ phần index_template không hợp lệ
+    flush:
+      interval: 5s
+      bytes: 5242880
+    retry:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      # ĐÃ XOÁ max_elapsed_time không hợp lệ
+    sending_queue:
+      enabled: true
+      num_consumers: 4
+      queue_size: 10000
+
+  elasticsearch/traces:
+    endpoints: ["http://elasticsearch:9200"]
+    traces_index: "app-traces"
+    flush:
+      interval: 5s
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, attributes]
+      exporters: [elasticsearch/logs]
+    
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [elasticsearch/traces]
